@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>混凝土叫料統計</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f6f5f1;--card:#fff;--tx:#1d1d1b;--mu:#6b6a63;--bd:#dedcd3;--ac:#b4540a;--ac2:#fbeee0;--upb:#f6c58b;--upt:#5a2d00;--dnb:#b9d3f5;--dnt:#0f2a52;--upr:#fdf1de;--dnr:#e8f1fc;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#181816;--card:#232321;--tx:#eeede7;--mu:#a09e94;--bd:#3a3935;--ac:#f0a060;--ac2:#3a2a1c;--upb:#8a4a12;--upt:#ffe2bf;--dnb:#264d80;--dnt:#d6e6ff;--upr:#33281a;--dnr:#1c2a3d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#181816;--card:#232321;--tx:#eeede7;--mu:#a09e94;--bd:#3a3935;--ac:#f0a060;--ac2:#3a2a1c;--upb:#8a4a12;--upt:#ffe2bf;--dnb:#264d80;--dnt:#d6e6ff;--upr:#33281a;--dnr:#1c2a3d;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;padding:12px}
+h1{font-size:19px;margin:4px 0 10px}h2{font-size:15px;margin:0 0 8px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+label{display:block;font-size:12px;color:var(--mu);margin-bottom:2px}
+input,select,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:7px 9px;width:100%}
+button{cursor:pointer;width:auto}button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{padding:4px 10px;border-radius:99px;font-size:13px;background:var(--ac2);border-color:transparent}
+.stat{background:var(--ac2);border-radius:10px;padding:10px}.stat b{display:block;font-size:22px;color:var(--ac)}.stat span{font-size:12px;color:var(--mu)}
+.sc{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}
+th,td{border-bottom:1px solid var(--bd);padding:6px 8px;text-align:left}th{color:var(--mu);font-weight:600;position:sticky;top:0;background:var(--card)}
+input[type=checkbox]{width:auto;padding:0;accent-color:var(--ac)}.ck{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--tx);margin:0}#ov{position:fixed;inset:0;background:#0007;display:none;align-items:center;justify-content:center;z-index:80;padding:16px}#ov>div{background:var(--card);border-radius:12px;padding:16px;max-width:420px;width:100%}#ovp{max-height:40vh;overflow:auto;white-space:pre-wrap;font-size:12px;background:var(--bg);padding:8px;border-radius:8px;display:none}.hid{display:none}.b{display:inline-block;padding:1px 8px;border-radius:99px;font-weight:700}.b.up{background:var(--upb);color:var(--upt)}.b.dn{background:var(--dnb);color:var(--dnt)}tr.up td{background:var(--upr)}tr.dn td{background:var(--dnr)}.ed{cursor:pointer;text-decoration:underline dotted var(--mu)}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}tfoot td{font-weight:700;border-top:2px solid var(--bd)}
+.x{color:#c0392b;border:0;background:none;padding:0 4px}small{color:var(--mu)}
+.pb{padding:2px 8px;border-radius:99px;font-size:13px;background:var(--ac2);border-color:transparent;white-space:nowrap}.pb.z{background:none;border:1px dashed var(--bd);color:var(--mu)}
+#pg{position:fixed;inset:0;background:#000a;display:none;align-items:flex-start;justify-content:center;z-index:60;padding:12px;overflow:auto}
+#pg>div{background:var(--card);border-radius:12px;padding:14px;width:100%;max-width:760px;margin:auto}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:10px}
+.pc{border:1px solid var(--bd);border-radius:10px;overflow:hidden;background:var(--bg)}
+.pc .im{aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;color:var(--mu);font-size:12px;cursor:zoom-in}
+.pc img{width:100%;height:100%;object-fit:cover;display:block}
+.pc .bar{display:flex;justify-content:space-between;align-items:center;padding:4px 6px;font-size:12px;gap:4px}.pc .bar a{color:var(--ac)}
+#lb{position:fixed;inset:0;background:#000d;display:none;align-items:center;justify-content:center;z-index:70;cursor:zoom-out}#lb img{max-width:96vw;max-height:96vh;object-fit:contain}
+</style>
+</head>
+<body>
+<h1>混凝土叫料統計 <small id="cloud">☁ 等待連線</small></h1>
+<div class="card" id="syncbar"><b>Google Sheets 雲端資料</b><div class="row"><button id="syncnow">立即同步／重新讀取</button><button id="firstupload">將此裝置資料首次上傳</button><button id="resetkey">重設通行碼</button></div><small id="syncnote">連線中…第一次開啟會要求輸入通行碼。</small></div>
+
+<div class="card">
+  <h2>本月計價</h2>
+  <div class="grid" style="align-items:end">
+    <div><label>計價月份</label><input id="bm" type="month"></div>
+    <div class="row" style="margin:0"><button id="mark">標記已勾選為本月已計價</button><button id="unmark">清除已勾選的計價標記</button></div>
+  </div>
+  <small id="win"></small>
+</div>
+
+<div id="warn" class="card hid" style="border-color:var(--ac);background:var(--ac2)"></div>
+
+<div class="card">
+  <div class="grid">
+    <div><label>估驗月份（已計價的月份）</label><select id="fb"></select></div>
+    <div><label>廠商</label><select id="fv"></select></div>
+    <div><label>規格</label><select id="fs"></select></div>
+    <div><label>施工項目 / 位置關鍵字</label><input id="fk" list="dl_k" placeholder="例：壓樑"></div>
+    <div><label>日期起</label><input id="fd1" type="date"></div>
+    <div><label>日期迄</label><input id="fd2" type="date"></div>
+    <div><label>差異篩選</label><label class="ck"><input type="checkbox" id="fdiff"> 只顯示「預計」和「實際」數量不同的</label></div>
+    <div><label>提醒篩選</label><label class="ck"><input type="checkbox" id="fub"> 只顯示已到期、還沒計價的</label></div>
+  </div>
+  <div class="row" id="chips"></div>
+  <div class="row"><button id="clr">清除篩選</button></div>
+</div>
+
+<div class="grid" style="margin-bottom:12px" id="stats"></div>
+<div class="card"><h2>預計與實際差異總覽 <small>依目前篩選條件，僅統計有填預計數量的紀錄；不受計價勾選影響</small></h2>
+<div class="grid" id="diffstats"></div><small id="diffnote"></small>
+<div class="grid" style="align-items:end;margin-top:12px"><div><label>差異分組方式</label><select id="dg"><option value="vs">廠商＋規格</option><option value="vendor">廠商</option><option value="spec">規格</option><option value="item">施工項目</option><option value="loc">施工位置</option><option value="date">日期</option></select></div></div>
+<div class="sc" style="margin-top:8px"><table id="diffpv"></table></div>
+<div class="row"><button id="diffexp" class="p">匯出差異統計 Excel</button></div></div>
+
+<div class="card">
+  <div class="grid" style="align-items:end">
+    <div><h2 style="margin:0">計價統計（只算已勾選）</h2></div>
+    <div><label>分組方式</label><select id="gb">
+      <option value="vs">廠商＋規格</option><option value="item">施工項目</option><option value="loc">施工位置</option><option value="date">日期</option></select></div>
+  </div>
+  <div class="sc" style="margin-top:8px"><table id="pv"></table></div>
+  <div class="row"><button id="cp">複製統計文字</button><button class="p" id="exp">匯出已勾選 (Excel)</button></div>
+</div>
+
+<div class="card">
+  <h2>明細 <small id="cnt"></small></h2>
+  <div class="row" style="margin:0 0 8px"><button id="offall">取消全部勾選</button><button id="onvis">勾選顯示中的</button><button id="defsel">恢復預設勾選</button></div>
+  <div class="sc" style="max-height:60vh"><table id="dt"></table></div>
+</div>
+
+<div class="card">
+  <h2>新增一筆</h2>
+  <div class="grid">
+    <div><label>日期</label><input id="a_d" type="date"></div>
+    <div><label>廠商</label><input id="a_v" list="dl_v"></div>
+    <div><label>施工位置</label><input id="a_l"></div>
+    <div><label>施工項目</label><input id="a_i"></div>
+    <div><label>規格</label><select id="a_s"></select>
+      <div class="row hid" id="ns"><input id="a_ns" placeholder="只輸入數字，例如 6000" style="flex:1;width:auto"><button id="a_nsb">加入</button></div></div>
+    <div><label>預計混凝土數量 (m³)</label><input id="a_pq" type="number" min="0" step="0.5" inputmode="decimal"></div>
+    <div><label>實際混凝土數量 (m³)</label><input id="a_q" type="number" min="0" step="0.5" inputmode="decimal"></div>
+    <div><label class="ck"><input type="checkbox" id="a_m"> 本次有砂漿</label>
+      <input id="a_mq" class="hid" type="number" min="0" step="0.5" inputmode="decimal" placeholder="砂漿數量 (m³)" style="margin-top:6px"></div>
+    <div><label class="ck"><input type="checkbox" id="a_p"> 本次有壓送車</label></div>
+    <div><label>備註</label><input id="a_n"></div>
+
+    <div><label>照片（可多張，新增後自動上傳）</label><input id="a_ph" type="file" accept="image/*" multiple></div>
+  </div>
+  <datalist id="dl_v"></datalist><datalist id="dl_k"></datalist>
+  <div class="row"><button class="p" id="add">新增</button></div>
+</div>
+
+<div class="card">
+  <h2>資料管理</h2>
+  <div class="row">
+    <button id="imp">匯入 Excel（取代全部）</button><input id="file" type="file" accept=".xlsx,.xls" style="display:none">
+    <button id="bak">匯出完整備份 (Excel)</button>
+  </div>
+  <small>資料會自動同步到 Drive 資料夾內的 Google Sheets，照片存在同一資料夾的「叫料照片」。勾選狀態只存在這台裝置。建議偶爾按「匯出完整備份」另存一份。</small>
+</div>
+
+<div id="pg"><div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px"><div><h2 id="pgt" style="margin:0"></h2><small id="pgs"></small></div><button id="pgx" style="flex-shrink:0;white-space:nowrap">關閉</button></div>
+  <div class="row"><button class="p" id="pgcam">📷 拍照</button><button id="pgalb">🖼 從相簿選（可多張）</button></div>
+  <input id="pgi1" type="file" accept="image/*" capture="environment" class="hid">
+  <input id="pgi2" type="file" accept="image/*" multiple class="hid">
+  <small id="pgmsg" style="display:block;margin-top:6px"></small>
+  <div class="pgrid" id="pgrid"></div>
+</div></div>
+<div id="lb"><img alt=""></div>
+<div id="ov"><div><p id="ovm"></p><pre id="ovp"></pre><input id="ovi" type="number" step="0.5" class="hid" style="margin-bottom:8px"><div class="row"><button class="p" id="ovo">確定</button><button id="ovc">取消</button></div></div></div>
+
+<script>
+const RAW={}; /* GitHub 公開版：原始資料已移除，資料一律從雲端讀取 */
+const LS="concrete-tracker-v3",LS2="concrete-tracker-v2",LS1="concrete-tracker-v1",LSS="concrete-tracker-v1-specs";
+let rows=[],uid=0,custom=[],ov={};
+const $=id=>document.getElementById(id);
+const pad=n=>String(n).padStart(2,"0");
+const fmt=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const f1=n=>(Math.round(n*100)/100).toString();
+
+/* 計價規則：灌漿日 +28 天 <= 計價月份前一個月的月底 */
+function cutoff(y,m){const d=new Date(y,m-1,0);d.setDate(d.getDate()-28);return fmt(d);}
+function window_(ym){const [y,m]=ym.split("-").map(Number);return{hi:cutoff(y,m),lo:cutoff(y,m-1)};}
+
+function dlg(msg,o={}){return new Promise(res=>{$("ovm").textContent=msg;$("ovp").textContent=o.pre||"";$("ovp").style.display=o.pre?"block":"none";
+  const hi=o.input!==undefined;$("ovi").classList.toggle("hid",!hi);if(hi)$("ovi").value=o.input;
+  $("ovc").style.display=o.cancel?"":"none";$("ov").style.display="flex";
+  const done=v=>{$("ov").style.display="none";res(hi?(v?$("ovi").value:null):v);};$("ovo").onclick=()=>done(true);$("ovc").onclick=()=>done(false);});}
+
+function parseQty(t){let c=0,m=0;t=String(t||"").replace(/（.*?）|\(.*?\)/g,"");const ps=t.split("+");
+  ps.forEach((p,i)=>{const x=p.match(/([\d.]+)\s*m3(?:\s*\*\s*(\d+)\s*台)?/i);if(!x)return;
+    const v=parseFloat(x[1])*(x[2]?+x[2]:1);if(/砂漿/.test(p)||(i>0&&v===1&&!x[2]))m+=v;else c+=v;});
+  return{c,m};}
+
+function parseSheet(aoa,sheet){
+  const h=(aoa[0]||[]).map(s=>String(s||"").trim());const ix=n=>h.indexOf(n);
+  const I={d:ix("日期"),v:ix("廠商"),l:ix("施工位置"),i:ix("施工項目"),s:ix("規格"),n:ix("備註")};
+  let q=ix("實際數量");if(q<0)q=ix("數量");const q2=ix("預計數量");
+  const out=[];let g=null;
+  const flush=()=>{if(!g||!g.lines.length){g=null;return;}
+    let conc=0,mor=0;const multi=g.lines.length>1;
+    g.lines.forEach(L=>{if(L.m>0){conc+=L.c;mor+=L.m;}else if(/砂漿/.test(L.item)||(multi&&L.c===1))mor+=L.c;else conc+=L.c;});
+    const e=g.head;e.item=e.item.replace(/\s*(砂漿|水泥)\s*$/,"");
+    const pl=g.lines.filter(L=>L.hp);e.pc=pl.length?pl.reduce((a,L)=>a+L.pc,0):null;e.conc=conc;e.mor=mor;e.q=g.lines.map(L=>L.qt).join(" + ");e.note=g.notes.join("；");e.sheet=sheet;e.id=++uid;
+    e.bill="";if(g.bill){const m=+g.bill,p=e.date.split("-").map(Number);e.bill=`${m>=p[1]?p[0]:p[0]+1}-${pad(m)}`;}
+    out.push(e);g=null;};
+  for(let r=1;r<aoa.length;r++){
+    const c=(aoa[r]||[]).map(s=>String(s==null?"":s).replace(/\s+/g," ").trim());
+    const dm=(c[I.d]||"").match(/^(\d{3})(\d{2})(\d{2})/);
+    const qt=c[q]||(q2>=0?c[q2]:"")||"";const {c:qc,m:qm}=parseQty(qt);
+    let b="";for(let k=Math.max(I.n,0);k<c.length;k++){const x=c[k].match(/(\d{1,2})月\s*OK/);if(x){b=x[1];break;}}
+    let note=c[I.n]||"";if(/^\d{1,2}月\s*OK$/.test(note))note="";
+    if(dm){flush();const dn=c[I.d].replace(/^\d{7}\s*\(.\)\s*/,"");
+      g={head:{date:`${+dm[1]+1911}-${dm[2]}-${dm[3]}`,wd:((c[I.d].match(/\((.)\)/)||[])[1])||"",vendor:c[I.v],loc:c[I.l],item:c[I.i],spec:c[I.s]},lines:[],notes:[dn,note].filter(Boolean),bill:""};}
+    else if(!g||qc+qm===0)continue;
+    else if(note)g.notes.push(note);
+    if(qc+qm>0){const pq=q2>=0?parseQty(c[q2]||""):null;g.lines.push({qt,c:qc,m:qm,item:c[I.i]||"",pc:pq?pq.c:0,hp:!!pq&&pq.c+pq.m>0});}
+    if(b&&!g.bill)g.bill=b;
+  }
+  flush();return out;}
+function fromRaw(raw){let o=[];for(const k in raw)o=o.concat(parseSheet(raw[k],k));return o;}
+
+function save(){try{localStorage.setItem(LS,JSON.stringify(rows));localStorage.setItem(LSS,JSON.stringify(custom));}catch(e){}cloudSave();}
+function ovKey(){return "concrete-ov3-"+$("bm").value;}
+function saveOv(){try{localStorage.setItem(ovKey(),JSON.stringify(ov));}catch(e){}}
+function loadOv(){ov={};try{ov=JSON.parse(localStorage.getItem(ovKey())||"{}");}catch(e){}}
+function dif(r){if(r.pc==null)return null;if(!(r.conc>0))return "pend";return Math.round((r.conc-r.pc)*100)/100;}
+function dcls(r){const d=dif(r);return d===null||d==="pend"||d===0?"":d>0?"up":"dn";}
+function dhtml(r){const d=dif(r);if(d===null)return "–";if(d==="pend")return '<span class="b">待補實際</span>';if(d===0)return "0";
+  return d>0?`<span class="b up">▲ +${f1(d)}</span>`:`<span class="b dn">▼ −${f1(-d)}</span>`;}
+function patchRows(a){a.forEach(r=>{if(r.date==="2026-09-26"&&r.vendor==="亞東"&&r.item==="機車道前排水管管溝"){r.loc="衛福部、歷建西側";r.item="機車道前排水管管溝、圍籬防溢座";}});return a;}
+const kOf=r=>[r.date,r.vendor,r.loc,r.item,r.spec].join("|");
+function load(){
+  try{const s=localStorage.getItem(LS);
+    if(s){rows=patchRows(JSON.parse(s));uid=Math.max(0,...rows.map(r=>r.id));}
+    else{rows=fromRaw(RAW);const o=localStorage.getItem(LS2)||localStorage.getItem(LS1);
+      if(o){const old=patchRows(JSON.parse(o)),man=old.filter(r=>r.sheet==="manual");
+        if(localStorage.getItem(LS2)){const m=new Map(old.filter(r=>r.sheet!=="manual").map(r=>[kOf(r),r]));
+          rows=rows.filter(r=>m.has(kOf(r)));rows.forEach(r=>{r.bill=m.get(kOf(r)).bill||"";});}
+        man.forEach(r=>{r.id=++uid;rows.push(r);});}}
+    custom=JSON.parse(localStorage.getItem(LSS)||"[]");}catch(e){rows=fromRaw(RAW);}}
+
+function uniq(k){return [...new Set(rows.map(r=>r[k]).filter(Boolean))];}
+function specs(){return [...new Set(uniq("spec").concat(custom))].sort((a,b)=>parseInt(a)-parseInt(b)||a.localeCompare(b));}
+function opts(el,vals,first,keep){const cur=keep?el.value:"";el.innerHTML=(first?`<option value="">${first}</option>`:"")+vals.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");if(vals.includes(cur))el.value=cur;}
+function refreshKw(){const base=["壓樑","排樁","鋪面","撐牆","帽梁","防溢座","擋土牆"];
+  const extra=[...new Set(rows.filter(r=>r.sheet==="manual").map(r=>r.item).filter(Boolean))].filter(k=>!base.includes(k));
+  $("chips").innerHTML=base.concat(extra).map(k=>`<button class="chip" data-k="${esc(k)}">${esc(k)}</button>`).join("");
+  $("dl_k").innerHTML=uniq("item").map(v=>`<option value="${esc(v)}">`).join("");}
+function refreshBill(){const cur=$("fb").value,bs=uniq("bill").sort();
+  $("fb").innerHTML=`<option value="">全部</option>`+bs.map(b=>`<option value="${b}">${b.replace("-","年")}月</option>`).join("")+`<option value="_">尚未計價</option>`;
+  if([...$("fb").options].some(o=>o.value===cur))$("fb").value=cur;}
+function refreshOpts(){refreshKw();refreshBill();
+  opts($("fv"),uniq("vendor"),"全部",1);opts($("fs"),specs(),"全部",1);
+  const cur=$("a_s").value;opts($("a_s"),specs(),"");$("a_s").insertAdjacentHTML("beforeend",`<option value="__new__">＋新增規格…</option>`);
+  if(specs().includes(cur))$("a_s").value=cur;
+  $("dl_v").innerHTML=uniq("vendor").map(v=>`<option value="${esc(v)}">`).join("");}
+
+const W=()=>window_($("bm").value);
+function isOn(r){if(ov[r.id]!==undefined)return ov[r.id];const fm=$("fb").value;if(fm&&fm!=="_")return r.bill===fm;return r.date<=W().hi&&(!r.bill||r.bill===$("bm").value);}
+function due(r){return !r.bill&&r.conc+r.mor>0&&r.date<=W().hi;}
+function filtered(){
+  const fb=$("fb").value,v=$("fv").value,s=$("fs").value,k=$("fk").value.trim(),d1=$("fd1").value,d2=$("fd2").value;
+  return rows.filter(r=>(!fb||(fb==="_"?!r.bill:r.bill===fb))&&(!v||r.vendor===v)&&(!s||r.spec===s)&&(!k||(r.item+r.loc+r.note).includes(k))&&(!d1||r.date>=d1)&&(!d2||r.date<=d2)&&(!$("fdiff").checked||dcls(r)!=="")&&(!$("fub").checked||due(r)))
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);}
+
+function keyOf(r,g){return g==="vs"?`${r.vendor||"-"}｜${r.spec||"-"}`:g==="item"?r.item||"-":g==="loc"?r.loc||"-":r.date;}
+let lastText="",SEL=[];
+function diffGroup(r,g){return g==="vendor"?r.vendor||"-":g==="spec"?r.spec||"-":keyOf(r,g);}
+function diffData(){const all=filtered(),valid=all.filter(r=>r.pc!==null&&r.pc!==undefined&&Number.isFinite(+r.pc)&&Number.isFinite(+r.conc));const total={p:0,a:0,up:0,down:0,n:0};const groups={};
+valid.forEach(r=>{const delta=+(+r.conc-(+r.pc)).toFixed(2),key=diffGroup(r,$("dg").value),g=groups[key]||(groups[key]={p:0,a:0,up:0,down:0,n:0});[total,g].forEach(x=>{x.p+=+r.pc;x.a+=+r.conc;x.up+=Math.max(delta,0);x.down+=Math.max(-delta,0);x.n++;});});
+return {all,valid,total,groups};}
+function renderDiff(){const {all,valid,total,groups}=diffData(),net=total.a-total.p;
+$("diffstats").innerHTML=[[f1(total.p),"預計總量 m³"],[f1(total.a),"實際總量 m³"],[(net>0?"+":"")+f1(net),"淨差異 m³"],["+"+f1(total.up),"超量合計 m³"],["−"+f1(total.down),"減量合計 m³"],[total.p>0?f1(net/total.p*100)+"%":"–","淨差異比例"]].map(x=>`<div class="stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join("");
+$("diffnote").textContent=`已比較 ${valid.length} 筆；另有 ${all.length-valid.length} 筆未填預計數量或數值不完整，未納入差異計算。超量與減量分別累計，不互相抵銷；砂漿另計。`;
+const header='<thead><tr><th>分組</th><th class="n">預計 m³</th><th class="n">實際 m³</th><th class="n">淨差異 m³</th><th class="n">超量 m³</th><th class="n">減量 m³</th><th class="n">筆數</th></tr></thead>';
+const line=(k,g)=>`<tr><td>${esc(k)}</td><td class="n">${f1(g.p)}</td><td class="n">${f1(g.a)}</td><td class="n">${g.a-g.p>0?"+":""}${f1(g.a-g.p)}</td><td class="n">${f1(g.up)}</td><td class="n">${f1(g.down)}</td><td class="n">${g.n}</td></tr>`;
+$("diffpv").innerHTML=header+'<tbody>'+Object.keys(groups).sort().map(k=>line(k,groups[k])).join('')+'</tbody><tfoot>'+line('合計',total)+'</tfoot>';}
+function render(){
+  const L=filtered(),w=W();SEL=L.filter(isOn);renderDiff();
+  const dl=rows.filter(due);$("warn").classList.toggle("hid",!dl.length);
+  $("warn").innerHTML=dl.length?`<b>⚠ 提醒：有 ${dl.length} 筆灌漿日已超過 28 天（${$("bm").value} 可計價），但還沒有計價紀錄</b><div style="margin:6px 0;font-size:13px">${dl.slice(0,5).map(r=>`${r.date.slice(2)} ${esc(r.vendor)} ${esc(r.item)}`).join("<br>")}${dl.length>5?`<br>…還有 ${dl.length-5} 筆`:""}</div><button id="warnb">只看這些</button>`:"";
+  $("win").textContent=`預設勾選：灌漿日 ${w.hi}（含）以前，且尚未計價或已標記為本月計價的`;
+  const C=SEL.reduce((a,r)=>a+r.conc,0),M=SEL.reduce((a,r)=>a+r.mor,0),PU=SEL.filter(r=>r.pump).length;
+  $("stats").innerHTML=[[f1(C),"混凝土 m³"],[f1(M),"砂漿 m³"],[PU,"壓送車（次）"],[`${SEL.length} / ${L.length}`,"已勾選 / 顯示筆數"]]
+    .map(x=>`<div class="stat"><b>${x[0]}</b><span>${x[1]}</span></div>`).join("");
+  const g=$("gb").value,P={};
+  SEL.forEach(r=>{const k=keyOf(r,g);(P[k]=P[k]||{c:0,m:0,n:0,p:0});P[k].c+=r.conc;P[k].m+=r.mor;P[k].n++;if(r.pump)P[k].p++;});
+  const ks=Object.keys(P).sort();
+  $("pv").innerHTML=`<thead><tr><th>分組</th><th class="n">混凝土 m³</th><th class="n">砂漿 m³</th><th class="n">壓送車</th><th class="n">筆數</th></tr></thead><tbody>`
+    +ks.map(k=>`<tr><td>${esc(k)}</td><td class="n">${f1(P[k].c)}</td><td class="n">${f1(P[k].m)}</td><td class="n">${P[k].p}</td><td class="n">${P[k].n}</td></tr>`).join("")
+    +`</tbody><tfoot><tr><td>合計</td><td class="n">${f1(C)}</td><td class="n">${f1(M)}</td><td class="n">${PU}</td><td class="n">${SEL.length}</td></tr></tfoot>`;
+  lastText=`計價月份 ${$("bm").value}\n`+ks.map(k=>`${k}：混凝土 ${f1(P[k].c)} m³${P[k].m?`，砂漿 ${f1(P[k].m)} m³`:""}${P[k].p?`，壓送車 ${P[k].p} 次`:""}`).join("\n")+`\n合計：混凝土 ${f1(C)} m³，砂漿 ${f1(M)} m³，壓送車 ${PU} 次`;
+  $("cnt").textContent=`（${L.length} 筆，點數字可修改）`;
+  $("dt").innerHTML=`<thead><tr><th><input type="checkbox" id="all" ${L.length&&SEL.length===L.length?"checked":""} title="全選／取消"></th><th>日期</th><th>廠商</th><th>位置</th><th>項目</th><th>規格</th><th class="n">預計</th><th class="n">混凝土(實際)</th><th class="n">差異</th><th class="n">砂漿</th><th>壓送車</th><th>計價月份</th><th>備註</th><th>照片</th><th></th></tr></thead><tbody>`
+    +L.map(r=>`<tr class="${dcls(r)}"><td><input type="checkbox" class="rk" data-id="${r.id}" ${isOn(r)?"checked":""}></td><td>${r.date.slice(2)} ${esc(r.wd)}</td><td>${esc(r.vendor)}</td><td>${esc(r.loc)}</td><td>${esc(r.item)}</td><td>${esc(r.spec)}</td><td class="n ed" data-id="${r.id}" data-f="pc">${r.pc!=null?f1(r.pc):"–"}</td><td class="n ed" data-id="${r.id}" data-f="conc">${f1(r.conc)}</td><td class="n">${dhtml(r)}</td><td class="n ed" data-id="${r.id}" data-f="mor">${r.mor?f1(r.mor):"–"}</td><td>${r.pump?"✓":""}</td><td>${r.bill||(due(r)?'<span class="b up">⚠ 未計價</span>':"")}</td><td>${esc(r.note)}</td><td><button class="pb${(r.photos||[]).length?"":" z"}" data-id="${r.id}" title="查看／新增照片">📷 ${(r.photos||[]).length||"＋"}</button></td><td><button class="x" data-id="${r.id}" title="刪除">✕</button></td></tr>`).join("")+`</tbody>`;
+}
+
+["fb","fv","fs","fk","fd1","fd2","gb","dg","fdiff","fub"].forEach(i=>$(i).addEventListener("input",render));
+$("bm").addEventListener("input",()=>{if(!$("bm").value)return;loadOv();render();});
+$("chips").onclick=e=>{const k=e.target.dataset.k;if(k){$("fk").value=$("fk").value===k?"":k;render();}};
+$("clr").onclick=()=>{["fb","fv","fs","fk","fd1","fd2"].forEach(i=>$(i).value="");$("fdiff").checked=false;$("fub").checked=false;render();};
+$("dt").onclick=async e=>{
+  const pbtn=e.target.closest(".pb");if(pbtn){openPhotos(+pbtn.dataset.id);return;}
+  if(e.target.id==="all"){const L=filtered(),on=e.target.checked;L.forEach(r=>ov[r.id]=on);saveOv();render();return;}
+  if(e.target.classList.contains("rk")){ov[+e.target.dataset.id]=e.target.checked;saveOv();render();return;}
+  const td=e.target.closest("td[data-f]");
+  if(td){const r=rows.find(x=>x.id===+td.dataset.id),f=td.dataset.f,nm={pc:"預計混凝土",conc:"實際混凝土",mor:"砂漿"}[f];
+    const v=await dlg(`修改${nm}數量 (m³)`,{cancel:1,input:r[f]==null?"":r[f]});
+    if(v!==null){const n=v===""?(f==="pc"?null:0):parseFloat(v);if(n===null||!isNaN(n)){r[f]=n;save();render();}}return;}
+  const id=e.target.dataset.id;if(id&&e.target.classList.contains("x")&&await dlg(delMsg(+id),{cancel:1})){const gone=rows.find(r=>r.id===+id),pids=((gone&&gone.photos)||[]).map(p=>p.id);
+    rows=rows.filter(r=>r.id!==+id);save();refreshOpts();render();
+    if(pids.length&&hasGas())gas("trashPhotos",pids).then(s=>{if(s&&s.fail)dlg(`有 ${s.fail} 張照片無法在 Drive 刪除，請到「叫料照片」資料夾手動處理。`);}).catch(err=>dlg("Drive 照片刪除失敗："+(err.message||err)));}};
+$("cp").onclick=async()=>{try{await navigator.clipboard.writeText(lastText);$("cp").textContent="已複製 ✓";setTimeout(()=>$("cp").textContent="複製統計文字",1500);}catch(e){dlg("無法自動複製，請長按選取下方文字：",{pre:lastText});}};
+
+$("exp").onclick=async()=>{
+  if(!SEL.length){dlg("目前沒有勾選任何一筆");return;}
+  const aoa=[["日期","廠商","位置","項目","規格","預計(m3)","混凝土(m3)","砂漿(m3)","壓送車","備註"]]
+    .concat(SEL.map(r=>[r.date,r.vendor,r.loc,r.item,r.spec,r.pc==null?"":r.pc,r.conc,r.mor||"",r.pump?"有":"",r.note]));
+  aoa.push(["合計","","","","","",SEL.reduce((a,r)=>a+r.conc,0),SEL.reduce((a,r)=>a+r.mor,0),SEL.filter(r=>r.pump).length,""]);
+  let dl=null;
+  const name=`混凝土計價_${$("bm").value}`;
+  
+  try{
+    let data,fn;
+    if(window.XLSX){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),"計價");data=new Blob([XLSX.write(wb,{type:"array",bookType:"xlsx"})]);fn=name+".xlsx";}
+    else{data="\ufeff"+aoa.map(a=>a.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n");fn=name+".csv";}
+    if(dl){await dl.save({filename:fn,data});}else{const blob=data instanceof Blob?data:new Blob([data],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+    if(await dlg(`要把這 ${SEL.length} 筆標記為 ${$("bm").value} 已計價嗎？`,{cancel:1}))markBill(true,1);
+  }catch(e){if(e&&e.code!=="declined")dlg("下載失敗："+(e.message||e.code||e));}
+};
+
+async function markBill(on,skip){if(!SEL.length)return dlg("目前沒有勾選任何一筆");
+  if(!skip&&!await dlg(on?`把已勾選的 ${SEL.length} 筆標記為 ${$("bm").value} 已計價？`:`清除已勾選 ${SEL.length} 筆的計價標記？`,{cancel:1}))return;
+  SEL.forEach(r=>r.bill=on?$("bm").value:"");save();refreshBill();render();}
+$("warn").onclick=e=>{if(e.target.id==="warnb"){$("fub").checked=true;render();$("dt").scrollIntoView({behavior:"smooth"});}};
+$("offall").onclick=()=>{rows.forEach(r=>ov[r.id]=false);saveOv();render();};
+$("onvis").onclick=()=>{filtered().forEach(r=>ov[r.id]=true);saveOv();render();};
+$("defsel").onclick=()=>{ov={};saveOv();render();};
+$("mark").onclick=()=>markBill(true);$("unmark").onclick=()=>markBill(false);
+$("a_s").onchange=()=>{$("ns").classList.toggle("hid",$("a_s").value!=="__new__");};
+$("a_nsb").onclick=()=>{let v=$("a_ns").value.trim().replace(/psi$/i,"").trim();if(!v)return;v=/^\d+$/.test(v)?v+"psi":v;if(!specs().includes(v))custom.push(v);save();refreshOpts();$("a_s").value=v;$("a_ns").value="";$("ns").classList.add("hid");};
+$("a_m").onchange=()=>$("a_mq").classList.toggle("hid",!$("a_m").checked);
+$("add").onclick=async()=>{
+  const c=parseFloat($("a_q").value)||0,m=$("a_m").checked?(parseFloat($("a_mq").value)||0):0;
+  if(!$("a_d").value)return dlg("請選擇日期");
+  if($("a_s").value==="__new__")return dlg("請先輸入並加入新規格");
+  if(c+m<=0&&!(parseFloat($("a_pq").value)>0))return dlg("請輸入預計或實際混凝土數量（m³）");
+  rows.push({id:++uid,date:$("a_d").value,wd:"",vendor:$("a_v").value,loc:$("a_l").value,item:$("a_i").value,spec:$("a_s").value,conc:c,mor:m,pc:$("a_pq").value===""?null:(parseFloat($("a_pq").value)||0),pump:$("a_p").checked,
+    q:c+"m3"+(m?"+"+m+"m3砂漿":""),note:$("a_n").value,sheet:"manual"});
+  ["a_pq","a_q","a_mq","a_n"].forEach(i=>$(i).value="");$("a_m").checked=false;$("a_p").checked=false;$("a_mq").classList.add("hid");
+  save();refreshOpts();render();
+  const nid=uid,files=[...($("a_ph").files||[])];$("a_ph").value="";
+  if(files.length){openPhotos(nid);uploadFiles(nid,files);}else dlg("已新增");};
+$("imp").onclick=()=>$("file").click();
+$("file").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+  try{const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});const raw={};
+    wb.SheetNames.forEach(n=>raw[n]=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:""}));
+    const o=fromRaw(raw);if(!o.length){dlg("讀不到資料，請確認欄位標題");return;}
+    if(await dlg(`讀到 ${o.length} 筆，取代目前全部資料？`,{cancel:1})){rows=o;ov={};saveOv();save();refreshOpts();render();}
+  }catch(err){dlg("匯入失敗："+err.message);}e.target.value="";};
+
+const now=new Date();$("a_d").value=fmt(now);
+$("bm").value=`${now.getFullYear()}-${pad(now.getMonth()+1)}`;
+{const n=new Date(now.getFullYear(),now.getMonth()+1,1);$("bm").value=`${n.getFullYear()}-${pad(n.getMonth()+1)}`;}
+async function saveAoa(aoa,name){let dl=null;
+  
+  try{let data,fn;
+    if(window.XLSX){const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),"資料");data=new Blob([XLSX.write(wb,{type:"array",bookType:"xlsx"})]);fn=name+".xlsx";}
+    else{data="\ufeff"+aoa.map(a=>a.map(x=>`"${String(x).replace(/"/g,'""')}"`).join(",")).join("\n");fn=name+".csv";}
+    if(dl){await dl.save({filename:fn,data});}else{const blob=data instanceof Blob?data:new Blob([data],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}}catch(e){if(e&&e.code!=="declined")dlg("下載失敗："+(e.message||e.code||e));}}
+$("diffexp").onclick=()=>{const {valid,total,groups}=diffData();const aoa=[["分組","預計(m³)","實際(m³)","淨差異(m³)","超量(m³)","減量(m³)","筆數"]];Object.keys(groups).sort().forEach(k=>{const g=groups[k];aoa.push([k,g.p,g.a,g.a-g.p,g.up,g.down,g.n]);});aoa.push(["合計",total.p,total.a,total.a-total.p,total.up,total.down,total.n]);aoa.push([],["明細：日期","廠商","位置","項目","規格","預計(m³)","實際(m³)","差異(m³)"]);valid.forEach(r=>aoa.push([r.date,r.vendor,r.loc,r.item,r.spec,r.pc,r.conc,r.conc-r.pc]));saveAoa(aoa,"混凝土差異統計_"+fmt(new Date()));};
+$("bak").onclick=()=>saveAoa([["日期","廠商","位置","項目","規格","預計(m3)","實際混凝土(m3)","砂漿(m3)","壓送車","計價月份","備註","照片數"]]
+  .concat(rows.slice().sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id).map(r=>[r.date,r.vendor,r.loc,r.item,r.spec,r.pc==null?"":r.pc,r.conc,r.mor||"",r.pump?"有":"",r.bill||"",r.note,(r.photos||[]).length])),"混凝土叫料紀錄_備份_"+fmt(new Date()));
+
+/* Google Apps Script 服務端同步：單一帳號、版本鎖、輪詢更新 */
+let cReady=false,cTimer=null,cBusy=false,cRevision=null,cDirty=false;
+const cstat=s=>{$("cloud").textContent=s;};
+/* ★ Apps Script 部署網址（網頁應用程式的 /exec 網址） */
+const API_URL="https://script.google.com/macros/s/AKfycbwIqR3UyuPHjE0JTLHyY_4WUC_lght4ubTDo6T3nhr55I2Yv6LJHH3mn2CkV-yqohba/exec";
+const KEY_LS="concrete-api-key";
+const hasGas=()=>/^https:\/\/script\.google\.com\//.test(API_URL);
+let keyAsk=null;
+function getKey(){let k="";try{k=localStorage.getItem(KEY_LS)||"";}catch(e){}if(k)return Promise.resolve(k);
+  if(!keyAsk)keyAsk=dlg("請輸入通行碼（第一次使用這台裝置時需要）",{input:"",cancel:1}).then(v=>{keyAsk=null;v=(v||"").trim();if(!v)throw new Error("未輸入通行碼");try{localStorage.setItem(KEY_LS,v);}catch(e){}return v;});
+  return keyAsk;}
+async function gas(fn,arg){const key=await getKey();
+  let res;try{res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({fn,arg,key})});}
+  catch(e){throw new Error("無法連到 Apps Script（請檢查網路，或部署的存取權是否設為「任何人」）");}
+  let j;try{j=await res.json();}catch(e){throw new Error("Apps Script 回傳格式錯誤，請確認已部署最新版本");}
+  if(!j.ok){if(/通行碼/.test(j.error||"")){try{localStorage.removeItem(KEY_LS);}catch(e){}}throw new Error(j.error||"未知錯誤");}
+  return j.data;}
+function applyCloud(d){rows=patchRows(d.rows||[]);custom=d.custom||[];uid=Math.max(0,...rows.map(r=>+r.id||0));
+  try{localStorage.setItem(LS,JSON.stringify(rows));localStorage.setItem(LSS,JSON.stringify(custom));}catch(e){}
+  refreshOpts();render();}
+function cloudSave(){if(!hasGas()||!cReady)return;cDirty=true;clearTimeout(cTimer);cstat("☁ 尚未同步");cTimer=setTimeout(pushCloud,900);}
+async function pushCloud(){if(cBusy||!cDirty||!cReady)return;cBusy=true;cDirty=false;cstat("☁ 儲存中…");
+  const payload={revision:cRevision,rows:JSON.parse(JSON.stringify(rows)),custom:[...custom]};
+  try{const d=await gas("saveData",payload);cRevision=d.revision;cstat("☁ 已儲存到 Google Sheets");}
+  catch(e){cDirty=true;cstat("⚠ 儲存失敗／版本衝突");$("syncnote").textContent="雲端儲存失敗："+(e.message||e)+"。本機暫存仍保留；請先匯出 Excel 備份，再重新整理或處理衝突。";}
+  finally{cBusy=false;if(cDirty&&cReady&&$("syncnote").textContent.indexOf("失敗")<0)cloudSave();}}
+async function pullCloud(force=false){if(!hasGas())return;if(cBusy||cDirty){if(force)await dlg("目前有尚未同步的變更，請先確認同步狀態或匯出備份。");return;}
+  cBusy=true;try{const d=await gas("loadData");if(d.revision!==cRevision){if(!cReady&&d.rows.length===0&&rows.length){$("syncnote").textContent="雲端目前沒有資料。本裝置已有 "+rows.length+" 筆本機紀錄，請按「將此裝置資料首次上傳」進行移轉。";}
+    else{applyCloud(d);$("syncnote").textContent="已連接指定資料夾內的 Google Sheets。";}}
+    cRevision=d.revision;cReady=true;cstat("☁ 已連線 Google Sheets");}
+  catch(e){cstat("⚠ 雲端連線失敗");$("syncnote").textContent=String(e.message||e);}
+  finally{cBusy=false;}}
+$("syncnow").onclick=()=>pullCloud(true);
+$("resetkey").onclick=async()=>{if(!await dlg("清除這台裝置記住的通行碼，並重新輸入？",{cancel:1}))return;try{localStorage.removeItem(KEY_LS);}catch(e){}cReady=false;pullCloud(true);};
+$("firstupload").onclick=async()=>{if(!hasGas())return dlg("尚未設定 Apps Script 網址（API_URL）。");
+  if(!rows.length)return dlg("本機沒有可上傳的資料");
+  if(!await dlg(`將這台裝置目前的 ${rows.length} 筆資料首次上傳至 Google Sheets？只允許在雲端資料表為空時執行。`,{cancel:1}))return;
+  try{const d=await gas("initialImport",{rows:rows,custom:custom});cRevision=d.revision;cReady=true;cDirty=false;cstat("☁ 首次上傳成功");$("syncnote").textContent="首次移轉完成，之後新增、修改、刪除會自動儲存。";}
+  catch(e){dlg("首次上傳失敗："+(e.message||e));}};
+/* ===== 照片：壓縮 → 上傳到 Drive「叫料照片」資料夾 → 相簿檢視 ===== */
+const PH={},PHbad={};   // 已載入的照片 id → dataURL / 錯誤訊息
+let pgRow=null,pgBusy=false,thumbBusy=false;
+const rowById=id=>rows.find(r=>r.id===id);
+const photoOk=()=>hasGas()&&cReady;
+function photoWhy(){return !hasGas()?"尚未設定 Apps Script 網址（API_URL）":"雲端還沒連線完成，請稍候再試，或按上方「立即同步」";}
+function delMsg(id){const r=rowById(id),n=r&&r.photos?r.photos.length:0;
+  return n?`這一筆有 ${n} 張照片。刪除這一筆時，雲端 Drive 的照片也會一併移到垃圾桶（30 天內可還原）。確定刪除？`:"刪除這一筆？";}
+
+function loadImg(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();
+  im.onload=()=>{URL.revokeObjectURL(u);res(im);};
+  im.onerror=()=>{URL.revokeObjectURL(u);rej(new Error("無法讀取這張圖片（格式不支援）"));};im.src=u;});}
+async function shrink(file,max=1600,q=0.8){
+  const im=await loadImg(file),w=im.naturalWidth,h=im.naturalHeight,k=Math.min(1,max/Math.max(w,h));
+  const cw=Math.max(1,Math.round(w*k)),ch=Math.max(1,Math.round(h*k));
+  const cv=document.createElement("canvas");cv.width=cw;cv.height=ch;
+  const cx=cv.getContext("2d");cx.fillStyle="#fff";cx.fillRect(0,0,cw,ch);cx.drawImage(im,0,0,cw,ch);
+  const blob=await new Promise(r=>cv.toBlob(r,"image/jpeg",q));
+  if(!blob)throw new Error("圖片壓縮失敗");
+  return new Promise((res,rej)=>{const fr=new FileReader();
+    fr.onload=()=>res({b64:String(fr.result).split(",")[1],size:blob.size});
+    fr.onerror=()=>rej(new Error("讀取壓縮結果失敗"));fr.readAsDataURL(blob);});}
+const rocDate=d=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(d||"");return m?(+m[1]-1911)+m[2]+m[3]:(d||"");};
+const pname=(r,i)=>{const n=(r.photos||[]).length;return [rocDate(r.date),r.vendor,r.item].filter(Boolean).join("_")+(n>0?` (${n+1})`:"");};
+
+async function uploadOne(id,file,label,setMsg){
+  const s=await shrink(file);
+  if(setMsg)setMsg(`上傳中（${Math.round(s.size/1024)} KB）…`);
+  const info=await gas("uploadPhoto",{name:label,mime:"image/jpeg",b64:s.b64});
+  const r=rowById(id);if(!r)throw new Error("這一筆已不存在，請重新整理");
+  (r.photos=r.photos||[]).push({id:info.id,name:info.name,t:info.t,orig:file.name});
+  save();return info;}
+
+async function uploadFiles(id,files){
+  const msg=$("pgmsg");
+  if(!photoOk()){msg.textContent="⚠ "+photoWhy();return;}
+  if(pgBusy){msg.textContent="上一批還在上傳，請稍候…";return;}
+  const r0=rowById(id);if(!r0)return;
+  pgBusy=true;let ok=0;const fail=[];
+  for(let i=0;i<files.length;i++){
+    const f=files[i],tag=`第 ${i+1}/${files.length} 張`;
+    try{
+      msg.textContent=`${tag}：壓縮中…`;
+      await uploadOne(id,f,pname(r0,i),s=>{msg.textContent=`${tag}：${s}`;});
+      ok++;renderPhotos();render();
+    }catch(e){fail.push(`${f.name||tag}：${e.message||e}`);}
+  }
+  pgBusy=false;
+  msg.textContent=`完成：成功 ${ok} 張`+(fail.length?`；失敗 ${fail.length} 張（${fail.join("；")}）`:"，已存到 Drive「叫料照片」資料夾。");
+}
+
+function openPhotos(id){const r=rowById(id);if(!r)return;pgRow=id;$("pg").style.display="flex";
+  $("pgt").textContent=`${r.date.slice(2)} ${r.vendor||""} ${r.item||""}`;
+  if(!pgBusy)$("pgmsg").textContent="";renderPhotos();}
+function closePhotos(){$("pg").style.display="none";pgRow=null;}
+function renderPhotos(){
+  if(pgRow==null)return;const r=rowById(pgRow);if(!r)return closePhotos();
+  const ps=r.photos||[];$("pgs").textContent=ps.length?`共 ${ps.length} 張，點圖放大`:"還沒有照片";
+  $("pgrid").innerHTML=ps.map((p,i)=>{
+    const inner=PH[p.id]?`<img src="${PH[p.id]}" alt="">`:PHbad[p.id]?"⚠ 無法載入":"載入中…";
+    return `<div class="pc"><div class="im" data-id="${esc(p.id)}">${inner}</div><div class="bar"><a href="https://drive.google.com/file/d/${esc(p.id)}/view" target="_blank" rel="noopener">在 Drive 開啟</a><button class="x" data-del="${i}" title="刪除這張照片">🗑</button></div></div>`;}).join("");
+  loadThumbs();}
+async function loadThumbs(){if(thumbBusy)return;thumbBusy=true;
+  try{for(;;){const r=pgRow==null?null:rowById(pgRow);if(!r)break;
+    const p=(r.photos||[]).find(x=>!PH[x.id]&&!PHbad[x.id]);if(!p)break;
+    try{PH[p.id]=await gas("getPhoto",p.id);}catch(e){PHbad[p.id]=String(e.message||e);}
+    renderPhotos();}}
+  finally{thumbBusy=false;}}
+
+$("pgrid").onclick=async e=>{
+  const im=e.target.closest(".im");
+  if(im&&PH[im.dataset.id]){$("lb").firstElementChild.src=PH[im.dataset.id];$("lb").style.display="flex";return;}
+  const del=e.target.closest("[data-del]");if(!del)return;
+  const p=((rowById(pgRow)||{}).photos||[])[+del.dataset.del];if(!p)return;
+  if(!await dlg("刪除這張照片？檔案會移到 Drive 垃圾桶（30 天內可還原）。",{cancel:1}))return;
+  try{await gas("trashPhoto",p.id);}
+  catch(err){if(!await dlg("Drive 端刪除失敗："+(err.message||err)+"\n仍要從這一筆移除這張照片的紀錄嗎？",{cancel:1}))return;}
+  const r=rowById(pgRow);if(!r)return;
+  r.photos=(r.photos||[]).filter(x=>x.id!==p.id);delete PH[p.id];delete PHbad[p.id];
+  save();renderPhotos();render();};
+$("pgcam").onclick=()=>$("pgi1").click();
+$("pgalb").onclick=()=>$("pgi2").click();
+["pgi1","pgi2"].forEach(i=>$(i).onchange=e=>{const fs=[...e.target.files];e.target.value="";if(fs.length&&pgRow!=null)uploadFiles(pgRow,fs);});
+$("pgx").onclick=closePhotos;
+$("pg").onclick=e=>{if(e.target.id==="pg")closePhotos();};
+$("lb").onclick=()=>{$("lb").style.display="none";};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if($("lb").style.display==="flex")$("lb").style.display="none";else if(pgRow!=null)closePhotos();}});
+
+load();loadOv();refreshOpts();render();
+if(hasGas()){pullCloud();setInterval(()=>{if(cReady&&!cBusy&&!cDirty)pullCloud();},30000);}else{cstat("☁ 本機預覽（未連線）");$("syncnote").textContent="尚未設定 Apps Script 網址（API_URL），目前只存在這台裝置。";}
+</script>
+</body>
+</html>
+
+
